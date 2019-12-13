@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Leaflet Map</title>
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css" />
+	<link rel="stylesheet" href="css/style.css"/>
+	<style>
+	html { height:100%;}
+
+	body {
+	    height:100%;
+	    padding: 0;
+	    margin: 0;
+	}
+
+	#map {
+		width: 100%;
+		margin: 0 auto;
+		height: 95%;
+	}
+
+	#header {
+		margin-top: 0px;
+		margin-bottom: 0px;
+	}
+
+
+	.info {
+	    z-index: 1000;
+	    position: absolute;
+	    right: 40%;
+	    top: 1%;
+	    padding: 6px 8px;
+	    font: 14px Arial, Helvetica, sans-serif;
+	    text-align: center;
+	    background: white;
+	    background: rgba(255, 255, 255, 0.8);
+	    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+	    border-radius: 5px;
+	}
+
+	.info h1 {
+	    font-size: 16px;
+	    margin: 0 0 5px;
+	    color: #777777;
+	}
+
+	.legend {
+		line-height: 25px;
+		color: #333333;
+		font-family: 'Open Sans', Helvetica, sans-serif;
+		padding: 20px 30px;
+		background: white;
+		background: rgba(255,255,255,0.8);
+		box-shadow: 0 0 15px rgba(0,0,0,0.2);
+		border-radius: 5px;
+	}
+
+	.legend i {
+		width: 30px;
+		height: 16px;
+		float: left;
+		margin-right: 8px;
+		opacity: 1;
+	}
+
+	.legend p {
+		font-size: 9px;
+		line-height: 18px;
+		margin: 0;
+	}
+
+	</style>
+</head>
+<body>
+	<!-- Our web map and content will go here -->	
+	<div class='info'><h1>Conflict in Sierra Leone, West Africa</h1></div>
+	
+	<div id="map"></div>
+	
+	<script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+	<div id="map" style="width: 1000px; height: 600px">
+    </div>
+	<script>
+		
+		var grayscale = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap' });		
+		var Esri_WorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+	});
+
+		var baseLayers = {
+			"Grayscale": grayscale,
+			"Satellite": Esri_WorldImagery
+		};
+
+		// create two layers of conflict zones and major cities of Sierra Leone
+		var overlayers_conflict_in_sierraleone = L.layerGroup();
+		var overlayers_major_cities = L.layerGroup();
+
+		// Add GeoJSON file of conflict in Sierra Leone
+		var neighborhoodsLayer = null;
+		$.getJSON("conflicts_adm.geojson",function(data){
+		  neighborhoodsLayer = L.geoJson(data, {
+			style: styleFunc,
+			onEachFeature: onEachFeature
+		}).addTo(overlayers_conflict_in_sierraleone);
+		});
+
+		// add the septa station as new layers
+		L.marker([8.484444, -13.234444]).bindPopup('Freetown, Capital City').addTo(overlayers_major_cities);
+		L.marker([8.881667, -12.044167]).bindPopup('Makeni City, Northern Province').addTo(overlayers_major_cities);
+		L.marker([7.956389, -11.7400]).bindPopup('Bo City, Southern Province').addTo(overlayers_major_cities);
+		L.marker([8.616444, -13.195489]).bindPopup('Lungi International Airport, Port Loko District, Northern Province').addTo(overlayers_major_cities);
+		L.marker([7.875833, -11.190833]).bindPopup('Kenema City, Eastern Province').addTo(overlayers_major_cities);
+		L.marker([8.6439, -10.9717]).bindPopup('Koidu New Sembehun City, Eastern Province').addTo(overlayers_major_cities);
+		L.marker([7.526389, -12.505]).bindPopup('Bonthe City, Southern Province').addTo(overlayers_major_cities);
+		L.marker([8.75, -12.666667]).bindPopup('Port Loko City, Northern Province').addTo(overlayers_major_cities);
+
+		// combine the geojson layer and major cities as the overlays
+		var overlays = {
+			"Conflict Spots": overlayers_conflict_in_sierraleone,
+			"Major City Councils": overlayers_major_cities
+		};
+
+		// Create Map Object
+    	var map = L.map('map',{ 
+    		center: [8.48445, -13.23445], 
+    		zoom: 12,
+    		layers: [grayscale, overlayers_conflict_in_sierraleone]
+    	});
+
+    	// Set style function that sets fill color property equal to conflict situations
+		function styleFunc(feature) {
+		    return {
+		        fillColor: setColorFunc(feature.properties.Sum_event_),
+		        fillOpacity: 1,
+		        weight: 1,
+		        opacity: 1,
+		        color: '#577fb7',
+		        dashArray: '3'
+		    };
+		}
+
+		// Set function for color ramp
+		function setColorFunc(density){
+			return density > 1500000 ? '#165736' :
+           density > 1250000 ? '#1a6640' :
+           density > 1000000 ? '#1e764a' :
+           density > 750000 ? '#218654' :
+           density > 500000 ? '#25965d' :
+           density > 250000 ? '#29a567' :
+           density > 0 ? '#2db571' :
+                         '#d8f5e7';
+		};
+
+		// set the highlight of polygon
+		var highlight = {
+			'fillColor': 'pink',
+			'weight': 2.5,
+			'opacity': 0.5
+		};
+
+		// Now we’ll use the onEachFeature option to add the listeners on our state layers:
+		function onEachFeature(feature, layer){
+			layer.on({
+				mouseover: highlightFeature,
+				mouseout: resetHighlight,
+				click: zoomFeature
+			});
+			layer.bindPopup('Conflict Figures: '+feature.properties.Sum_event_);
+		}
+
+		function highlightFeature(e){
+			var layer = e.target;
+
+			layer.setStyle({
+				weight: 5,
+				color: '#666',
+				dashArray: '',
+				fillOpacity: 0.7
+			});
+
+		// for different web browsers
+			if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+		        layer.bringToFront();
+		    }
+		}
+
+		// Define what happens on mouseout:
+		function resetHighlight(e) {
+			neighborhoodsLayer.setStyle({
+		        fillOpacity: 1,
+		        weight: 1,
+		        opacity: 1,
+		        color: '#577fb7',
+		        dashArray: '3'
+			});
+		}
+
+		// As an additional touch, let’s define a click listener that zooms to the state: 
+		function zoomFeature(e){
+			// console.log(e.target.getBounds());
+			var layer = e.target;
+			neighborhoodsLayer.setStyle(styleFunc); //resets layer colors
+            layer.setStyle(highlight);  //highlights selected.
+
+			map.fitBounds(e.target.getBounds().pad(1.5));
+		}
+
+		// Create Leaflet Control Object for Legend
+		var legend = L.control({position: 'bottomright'});
+
+		// Function that runs when legend is added to map
+		legend.onAdd = function (map) {
+			// Create Div Element and Populate it with HTML
+			var div = L.DomUtil.create('div', 'legend');		    
+			div.innerHTML += '<b>Conflict Spots</b><br />';
+			div.innerHTML += 'by District Block Group<br />';
+			div.innerHTML += '<br>';
+			div.innerHTML += '<i style="background: #165736"></i><p>1,500,000+</p>';
+		    div.innerHTML += '<i style="background: #1a6640"></i><p>1,250,000-1,500,000</p>';
+		    div.innerHTML += '<i style="background: #1e764a"></i><p>1,000,000-1,250,000</p>';
+		    div.innerHTML += '<i style="background: #218654"></i><p>750,000-1,000,000</p>';
+		    div.innerHTML += '<i style="background: #25965d"></i><p>500,000-750,000</p>';
+		    div.innerHTML += '<i style="background: #29a567"></i><p>250,000-500,000</p>';
+		    div.innerHTML += '<i style="background: #2db571"></i><p>0-250,000</p>';
+		    div.innerHTML += '<hr>';
+		    div.innerHTML += '<i style="background: #d8f5e7"></i><p>No Data</p>';			
+			// Return the Legend div containing the HTML content
+			return div;
+		};
+
+		// Add Legend to Map
+		legend.addTo(map);
+		
+		// Add Scale Bar to Map
+		L.control.scale({position: 'bottomleft'}).addTo(map);
+		L.control.layers(baseLayers, overlays).addTo(map);
+
+		// Draw polyline of SEPTA stations
+		var myDataLine = L.polyline([[8.484444, -13.234444], 
+                                    [8.881667, -12.044167],
+                                    [7.956389, -11.7400],
+                                    [7.526389, -12.505]],
+                        {color: 'red', weight: 5}).addTo(overlayers_major_cities).bringToFront();
+			
+		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png?{foo}', {
+	foo: 'bar',
+	attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>'
+}).addTo(map);
+
+	</script>
+</body>
+</html>
